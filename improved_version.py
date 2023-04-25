@@ -7,17 +7,17 @@ import random
 import time
 import matplotlib.collections as mc
 L = 30
-sigma = 1
-epsilon = 1
+
 m = 1
 rc = 2.5
 dt = 0.01
 N = int(input("Insert N: "))
 
+thermostat_temp = float(input("Insert thermostat temperature: "))
 N_X = int(L/rc)
 N_Y = int(L/rc)
 
-cell_list = [[[] for _ in range(N_Y)] for _ in range(N_X)]
+
 x_init = np.arange(0, L, 1.)
 y_init = np.arange(0, L, 1.)
 positions = []
@@ -70,7 +70,7 @@ def return_velocities():
 def compute_init_potential_energy(particles, rc):
 
     potential_energy = 0.
-    equal_obj = 0
+    
     for part in particles.copy():
 
         x, y = part.x, part.y
@@ -97,14 +97,14 @@ def compute_init_potential_energy(particles, rc):
 
                     potential_energy += 4 * \
                         (1./r**12 - 1./r**6) - 4*((1./rc**12) - (1./rc**6))
-            else:
-                equal_obj += 1
-    print(f"Equal objects: {equal_obj}")
+            
+    
     return potential_energy
 
 
 velocities = return_velocities()
 # positions[250+i]#
+cell_list = [[[] for _ in range(N_Y)] for _ in range(N_X)]
 for i in range(N):
     alpha = 2 * math.pi * random.random()
     rand_x, rand_y = random.choice(positions)  
@@ -114,7 +114,7 @@ for i in range(N):
     x_cell = int(rand_x//rc)
     y_cell = int(rand_y//rc)
 
-    particle = p(rand_x, rand_y, v_x, v_y, m, L, x_cell, y_cell)
+    particle = p(rand_x, rand_y, v_x, v_y, m, L, x_cell, y_cell, thermostat_temp)
     particles.append(particle)
     cell_list[x_cell][y_cell].append(particle)
 
@@ -141,8 +141,10 @@ init_potential_energy = compute_init_potential_energy(particles, rc)
 total_energy = []
 potential_energy_list = [init_potential_energy]
 kinetic_energy_list = [init_kinetic_energy]
+
+sizes = [20. for _ in range(N)]
 # single_part_U = []
-for iter in range(300):
+for iter in range(500):
 
     for part in particles:
         cell_list[part.i][part.j].remove(part)
@@ -190,7 +192,11 @@ for iter in range(300):
                             
                             single_part_U.append(single_part_U_iter)'''
         part.update_vel_acc(dt, F_x, F_y)
-
+    kinetic_energy = sum(part.k_en for part in particles)
+    temperature = 2 * kinetic_energy / (3 * N)
+    for part in particles:
+        part.apply_thermostat_scaling(temperature)
+    temperatures.append(temperature)
     potential_energy_list.append(potential_energy)
     kinetic_energy = sum(part.k_en for part in particles)
 
@@ -213,7 +219,7 @@ for iter in range(300):
     ax.set_ylim([0, L])
     # scatter_particles = ax.scatter([part.x for part in particles], [
     #    part.y for part in particles], c='red', s=30)
-    sizes = [20. for _ in range(N)]
+    
     xy = [[part.x, part.y] for part in particles]
     patches = [plt.Circle(center, size) for center, size in zip(xy, sizes)]
     collection = mc.CircleCollection(
@@ -239,10 +245,12 @@ for iter in range(300):
     #        potential_energy_list[0]+kinetic_energy_list[0]+1/np.sqrt(N)))
     # ax3.plot(list(range(iter+1)), np.full(iter+1,
     #         potential_energy_list[0]+kinetic_energy_list[0]-1/np.sqrt(N)))
-    temp = 2.*kinetic_energy/(3. * N)
-    temperatures.append(temp)
+    
+    
     ax4.plot(list(range(len(temperatures))), temperatures,
              c='blue', label="Temp")
+    ax4.plot(list(range(len(temperatures))), np.full(len(temperatures), thermostat_temp),
+             c='blue', label="Temp bath")
     ax4.set_ylabel("Temperature")
     ax4.set_xlabel("Iter")
 

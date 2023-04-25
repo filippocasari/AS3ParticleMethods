@@ -2,13 +2,12 @@ import math
 import numpy as np
 
 class Particle:
-    def __init__(self, x, y, vx, vy, m,  L, i, j):
+    def __init__(self, x, y, vx, vy, m,  L, i, j, thermostat_temp):
 
         self.x = x
 
         self.y = y
-
-        
+        self.thermostat_temp = thermostat_temp
         self.vx = vx
         self.vy = vy
         self.m = m
@@ -43,7 +42,6 @@ class Particle:
         new_acc_y = self.F_y/self.m
         self.vx += (self.a_x+new_acc_x)*dt*0.5
         self.vy += (self.a_y+new_acc_y)*dt*0.5
-
         self.a_x = new_acc_x
         self.a_y = new_acc_y
         self.compute_k_energy()
@@ -62,3 +60,8 @@ class Particle:
         self.F_y = 0.
         #self.a_x =0.
         #self.a_y=0.
+    def apply_thermostat_scaling(self, temp):
+        
+        gamma = np.sqrt(1+(0.0025*((self.thermostat_temp/temp)-1)))
+        self.vx *= gamma
+        self.vy *= gamma
