@@ -12,7 +12,7 @@ m = 1
 rc = 2.5
 dt = 0.01
 N = int(input("Insert N: "))
-
+init_temp = float(input("Insert temperature: "))
 thermostat_temp = float(input("Insert thermostat temperature: "))
 N_X = int(L/rc)
 N_Y = int(L/rc)
@@ -50,7 +50,7 @@ def return_momentum_y(particles):
     return sum(v_y)
 
 
-init_temp = 0.1
+
 
 
 def return_velocities():
@@ -246,20 +246,20 @@ for iter in range(500):
     # ax3.plot(list(range(iter+1)), np.full(iter+1,
     #         potential_energy_list[0]+kinetic_energy_list[0]-1/np.sqrt(N)))
     
-    
-    ax4.plot(list(range(len(temperatures))), temperatures,
-             c='blue', label="Temp")
-    ax4.plot(list(range(len(temperatures))), np.full(len(temperatures), thermostat_temp),
-             c='blue', label="Temp bath")
-    ax4.set_ylabel("Temperature")
-    ax4.set_xlabel("Iter")
+    if(iter%100==0):
+        ax4.plot(list(range(len(temperatures))), temperatures,
+                c='blue', label="Temp")
+        ax4.plot(list(range(len(temperatures))), np.full(len(temperatures), thermostat_temp),
+                c='blue', label="Temp bath")
+        ax4.set_ylabel("Temperature")
+        ax4.set_xlabel("Iter")
 
-    # ax3.legend().remove()
-    legend = ax3.legend()
-    legend.remove()
+        # ax3.legend().remove()
+        legend = ax3.legend()
+        legend.remove()
 
-    fig.canvas.draw()
-    fig.canvas.flush_events
+        fig.canvas.draw()
+        fig.canvas.flush_events
 
     plt.pause(0.0000001)
 fig.savefig(f"images/A_{N}.jpg")

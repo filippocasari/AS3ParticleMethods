@@ -3,15 +3,18 @@
 #include <thread>
 #include <algorithm>
 #include <mutex>
+#include <unistd.h>
 #include <sstream>
 #include <vector>
+#include <tuple>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <netinet/in.h>
-#include <net/if.h>
 #include "Particle.h"
 #include <string>
-#include <implot.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <czmq.h>
 #define GLFW_INCLUDE_NONE
 const int WIDTH = 800;
 const int HEIGHT = 600;
@@ -86,7 +89,7 @@ double compute_init_kinetic_energy(std::vector<Particle> particles) {
 }
 int main(){
     
-    
+
     int N;
     std::cout << "Insert N: \n";
     std::cin >> N;
@@ -172,31 +175,20 @@ int main(){
         cell_list[particle_list[i].i][particle_list[i].j].push_back(particle_list[i]);
     };
 
-    //std::ofstream output_file("positions.csv", std::ios::trunc);
-
-    //for (int i=0;i<particle_list.size();i++){
-        //output_file << particle_list[i].x << "," << particle_list[i].y << std::endl;
-    //}
-    //output_file.flush();
     
-    
-    //glClear(GL_COLOR_BUFFER_BIT);
-    
-
-
-// Set up VBO
-    //ImPlot::SetNextAxesLimits(0, 10, 0, 10);
-    ImPlot::BeginPlot("My Scatter Plot", "X", "Y");
-    double *x_array = new double[particle_list.size()];
-    double *y_array = new double[particle_list.size()];
+    vector<double>x_array = vector<double>(particle_list.size());
+    vector<double>y_array = vector<double>(particle_list.size());
     for (int i=0;i<particle_list.size();i++){
         x_array[i] = particle_list[i].x;
         y_array[i] = particle_list[i].y;
     }
-    ImPlot::PlotScatter( "Point", x_array, y_array, particle_list.size());
-    ImPlot::EndPlot();
+    
+
+    
+    zsock_t *socket = zsock_new_req("tcp://localhost:5555");
+    zmsg_t *reply;
     while(1) {
-        
+        zmsg_t *message = zmsg_new();
         for (int i = 0; i < N_X; i++) {
             for (int j = 0; j < N_Y; j++) {
                 for (auto it = cell_list[i][j].begin(); it != cell_list[i][j].end(); ) {
@@ -219,14 +211,27 @@ int main(){
             part.i = x_cell;
             part.j = y_cell;
             
-            //output_file << part.x << "," << part.y << std::endl;
+            
         }
+        
+        for (int i=0;i<particle_list.size();i++){
+            x_array[i] = particle_list[i].x;
+            y_array[i] = particle_list[i].y;
+        }
+        zframe_t *frame1 = zframe_new(x_array.data(), sizeof(double) * x_array.size());
+        zmsg_add(message, frame1);
+        zframe_t *frame2 = zframe_new(y_array.data(), sizeof(double) * y_array.size());
+        zmsg_add(message, frame2);
+        zmsg_send(&message, socket);
+        reply = zmsg_recv(socket);
+        zframe_t *reply_frame = zmsg_pop(reply);
+        std::cout << "Received reply: " << std::string((char *)(zframe_data(reply_frame)), zframe_size(reply_frame)) << std::endl;
         
         
         
     }
-    //output_file.close();
-    
+    zsock_destroy(&socket);
+    zmsg_destroy(&reply);
     return 0;
 }
 
